@@ -1,4 +1,5 @@
 # TODO: remove images with ghostscript
+# TODO stringio may be used
 
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter, PDFPageAggregator
@@ -30,12 +31,11 @@ title = ""
 article = ""
 
 def eliminate_log(pk, desc, *args):
-    pass
-    #print(pk, "ELIMINATED:", desc, *args)
+    print(pk, "ELIMINATED:", desc, *args)
 
 for PageNumer, page in enumerate(PDFPage.get_pages(fp, pagenos , password=password,caching=caching, check_extractable=True)):
     # TODO: Cover page can be ignored.
-    if PageNumer == 49:
+    if PageNumer == 27:
         interpreter.process_page(page)
         layout = device.get_result()
         #print(layout)
@@ -56,7 +56,6 @@ for PageNumer, page in enumerate(PDFPage.get_pages(fp, pagenos , password=passwo
         print(pk, "PAGE INFO: ", "width", width, "height", height, "header_threshold", header_threshold, "footer_threshold", footer_threshold)
 
         for element in layout:
-            #print(element)
             if isinstance(element, LTTextBoxHorizontal):
                 # Calculates text's column number
                 # (Sometimes two successing texts x value differ a little. eliminating differences by assigning col values)
@@ -70,8 +69,7 @@ for PageNumer, page in enumerate(PDFPage.get_pages(fp, pagenos , password=passwo
                 # Cleaned
                 text = text.replace("-\n", "").replace("\n", "")
 
-                # RULE: Elminate header and footer texts like page numbers and magazine name
-                if (yP > header_threshold and yP < footer_threshold):
+                if (yP < footer_threshold):
                     # RULE: Eliminate single word text which is close to the threshold
                     if((yP < header_threshold * 2 or yP > footer_threshold_2) and len(text.split(" ")) < 2):
                         eliminate_log(pk, "Not in threshold but single word", text)
@@ -86,7 +84,7 @@ for PageNumer, page in enumerate(PDFPage.get_pages(fp, pagenos , password=passwo
                         #page_elements.append((xP, yP, xS, yS, text, len(text)))
                 else:
                     eliminate_log(pk, "Header / Footer text:", xP, yP, text)
-        
+
         if (len(page_elements) > 0):
             page_elements.sort(key = operator.itemgetter(0, 1))
             # TODO These calculations can be more efficient
@@ -95,13 +93,23 @@ for PageNumer, page in enumerate(PDFPage.get_pages(fp, pagenos , password=passwo
             title = max(page_elements, key=operator.itemgetter(4))[-2]
             content = ""
 
-            atl=[]
-            btl=[]
+            ymax = 0
+            bottom_item = 0
 
             for i in page_elements:
                 print(i[2]-i[0],i[0],i[1],i[2],i[3],i[4],i[5][:20],len(i[5]))
-                # TODO stringio may be used
+                if i[1] > ymax:
+                    ymax = i[1]
+                    bottom_item = i
 
+            # RULE: remove footer fext like page number and magazine name
+            page_elements.remove(bottom_item)
+
+            # TODO: Call seperator
+            # TODO: Organize vals order
+
+            for i in page_elements:
+                #print(i[2]-i[0],i[0],i[1],i[2],i[3],i[4],i[5][:20],len(i[5]))
                 size = i[4]
                 # RULE: Remove smallest text - generally image descriptions
                 text = i[-2]
@@ -110,21 +118,6 @@ for PageNumer, page in enumerate(PDFPage.get_pages(fp, pagenos , password=passwo
                 else:
                     eliminate_log(pk, "Smallest text in the page", text)
                 
-                #ATL - BTL - Segmentation Logic
-                if(i[1] < half_line):
-                    atl.append(i[3])
-                else:
-                    btl.append(i[1])
-
-            if (len(atl) >= 1 and len(btl) >= 1):
-                atl_bottom_line = max(atl)
-                btl_top_line = min(btl)
-                space = btl_top_line - atl_bottom_line
-
-                if space > 5:
-                    seperator_line = atl_bottom_line + space / 2
-                    print(pk, "atl", atl, "btl", btl)
-                    print(pk, seperator_line, atl_bottom_line, btl_top_line, space, "\n")
             
             #print(pk, "TITLE", title)
             #print(pk, "CONTENT", content)
