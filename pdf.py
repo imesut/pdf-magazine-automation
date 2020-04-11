@@ -10,7 +10,7 @@ import operator
 
 vals = []
 
-# TODO: Change this
+# TODO: Change this value for a common approach
 threshold_rate = 0.05
 col_count = 10
 
@@ -20,7 +20,7 @@ retstr = StringIO()
 laparams = LAParams(detect_vertical=True)
 #device = TextConverter(resourcemanager, retstr, laparams=laparams)
 device = PDFPageAggregator(resourcemanager, laparams=laparams)
-fp = open("swi.pdf", 'rb')
+fp = open("atlas_text.pdf", 'rb')
 interpreter = PDFPageInterpreter(resourcemanager, device)
 password = ""
 caching = True
@@ -30,10 +30,12 @@ title = ""
 article = ""
 
 def eliminate_log(pk, desc, *args):
-    print(pk, "ELIMINATED:", desc, *args)
+    pass
+    #print(pk, "ELIMINATED:", desc, *args)
 
-for PageNumer,page in enumerate(PDFPage.get_pages(fp, pagenos , password=password,caching=caching, check_extractable=True)):
-    if PageNumer == 53:
+for PageNumer, page in enumerate(PDFPage.get_pages(fp, pagenos , password=password,caching=caching, check_extractable=True)):
+    # TODO: Cover page can be ignored.
+    if PageNumer == 49:
         interpreter.process_page(page)
         layout = device.get_result()
         #print(layout)
@@ -42,7 +44,8 @@ for PageNumer,page in enumerate(PDFPage.get_pages(fp, pagenos , password=passwor
         width = round(page.mediabox[2])
         height = round(page.mediabox[3])
         
-        header_threshold = round(height * threshold_rate)
+        half_line = height / 2
+        header_threshold = 0 #round(height * threshold_rate)
         footer_threshold = round(height * (1 - threshold_rate))
         footer_threshold_2 = round(height * (1 - threshold_rate * 2))
         
@@ -84,26 +87,47 @@ for PageNumer,page in enumerate(PDFPage.get_pages(fp, pagenos , password=passwor
                 else:
                     eliminate_log(pk, "Header / Footer text:", xP, yP, text)
         
-        page_elements.sort(key = operator.itemgetter(0, 1))
-        # TODO These calculations can be more efficient
-        smallest_size = min(page_elements, key=operator.itemgetter(4))[4]
-        # biggest_size = max(page_elements, key=operator.itemgetter(4))[4]
-        title = max(page_elements, key=operator.itemgetter(4))[-2]
-        content = ""
-        for i in page_elements:
-            print(i[2]-i[0],i[0],i[1],i[2],i[3],i[4],i[5][:20])
-        # TODO stringio may be used
-        for i in page_elements:
-            size = i[4]
-            # RULE: Remove smallest text - generally image descriptions
-            text = i[-2]
-            if size != smallest_size:
-                content += text + "\n"
-            else:
-                eliminate_log(pk, "Smallest text in the page", text)
-        
-        #print(pk, "TITLE", title)
-        #print(pk, "CONTENT", content)
+        if (len(page_elements) > 0):
+            page_elements.sort(key = operator.itemgetter(0, 1))
+            # TODO These calculations can be more efficient
+            smallest_size = min(page_elements, key=operator.itemgetter(4))[4]
+            # biggest_size = max(page_elements, key=operator.itemgetter(4))[4]
+            title = max(page_elements, key=operator.itemgetter(4))[-2]
+            content = ""
+
+            atl=[]
+            btl=[]
+
+            for i in page_elements:
+                print(i[2]-i[0],i[0],i[1],i[2],i[3],i[4],i[5][:20],len(i[5]))
+                # TODO stringio may be used
+
+                size = i[4]
+                # RULE: Remove smallest text - generally image descriptions
+                text = i[-2]
+                if size != smallest_size:
+                    content += text + "\n"
+                else:
+                    eliminate_log(pk, "Smallest text in the page", text)
+                
+                #ATL - BTL - Segmentation Logic
+                if(i[1] < half_line):
+                    atl.append(i[3])
+                else:
+                    btl.append(i[1])
+
+            if (len(atl) >= 1 and len(btl) >= 1):
+                atl_bottom_line = max(atl)
+                btl_top_line = min(btl)
+                space = btl_top_line - atl_bottom_line
+
+                if space > 5:
+                    seperator_line = atl_bottom_line + space / 2
+                    print(pk, "atl", atl, "btl", btl)
+                    print(pk, seperator_line, atl_bottom_line, btl_top_line, space, "\n")
+            
+            #print(pk, "TITLE", title)
+            #print(pk, "CONTENT", content)
 
 fp.close()
 device.close()
