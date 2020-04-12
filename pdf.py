@@ -60,13 +60,15 @@ def get_text_size(horizontal_text_line):
 output_text_file = create_file()
 
 first_time = False
-
-def calculate_and_add_title(text_boxes):
+def calculate_titles_and_insert(text_boxes):
     # Title Calculation
     # When new title calculated seperate files
+
     global prev_biggest_item_size, output_text_file, first_time
+
     biggest_item = max(text_boxes, key=operator.itemgetter(4))
     biggest_item_size = biggest_item[4]
+    biggest_items = []
     if prev_biggest_item_size == 0:
         prev_biggest_item_size = biggest_item_size
         first_time = True
@@ -74,16 +76,17 @@ def calculate_and_add_title(text_boxes):
     # if biggest_item_size >= prev_biggest_item_size:
     # There is a threshold
     if abs(biggest_item_size - prev_biggest_item_size) <= 2:
-        biggest_items = filter(lambda x: x[4] == biggest_item_size, text_boxes)
+        biggest_items = list(filter(lambda x: x[4] == biggest_item_size, text_boxes))
         biggest_items_text = map(lambda x: x[5], biggest_items)
         title = " ".join(biggest_items_text)
         if not first_time:
             print("closing file", biggest_item_size, prev_biggest_item_size)
             output_text_file.close()
             output_text_file = create_file()
-        output_text_file.write("# " + title)
+        output_text_file.write("# " + title + "\n")
         prev_biggest_item_size = biggest_item_size
         first_time = False
+    return biggest_items
 
 for pN, page in enumerate(PDFPage.get_pages(fp, pagenos, password=password, caching=caching, check_extractable=True)):
     # Cover page ignored.
@@ -146,8 +149,11 @@ for pN, page in enumerate(PDFPage.get_pages(fp, pagenos, password=password, cach
             smallest_size = min(text_boxes, key=operator.itemgetter(4))[4]
             
             # TODO seperate this function
-            calculate_and_add_title(text_boxes)
-
+            titles = calculate_titles_and_insert(text_boxes)
+            print(titles)
+            for item in titles:
+                text_boxes.remove(item)
+            print(text_boxes)
             content = ""
             ymax, bottom_item = 0, 0
 
