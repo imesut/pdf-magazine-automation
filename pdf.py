@@ -1,5 +1,8 @@
 # TODO: remove images with ghostscript
 # TODO stringio may be used
+# TODO add kays to arrays for performance
+# TODO: What can be parameters
+# 1. col_count - 12 worked for Atlas - 10 worked for Ist. Life
 
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter, PDFPageAggregator
@@ -16,7 +19,7 @@ log_file = open(pdf_file_name + ".log", "w")
 
 # TODO: Change this value for a common approach
 threshold_rate = 0.05
-col_count = 10
+col_count = 12
 
 resourcemanager = PDFResourceManager()
 retstr = StringIO()
@@ -90,7 +93,7 @@ def calculate_titles_and_insert(text_boxes):
 
 for pN, page in enumerate(PDFPage.get_pages(fp, pagenos, password=password, caching=caching, check_extractable=True)):
     # Cover page ignored.
-    if pN > 0 and pN >= 29 and pN <= 31:
+    if pN > 0 and pN == 31: # pN >= 29 and 
         interpreter.process_page(page)
         layout = device.get_result()
         #print(layout)
@@ -153,7 +156,7 @@ for pN, page in enumerate(PDFPage.get_pages(fp, pagenos, password=password, cach
             print(titles)
             for item in titles:
                 text_boxes.remove(item)
-            print(text_boxes)
+
             content = ""
             ymax, bottom_item = 0, 0
 
@@ -169,12 +172,16 @@ for pN, page in enumerate(PDFPage.get_pages(fp, pagenos, password=password, cach
             # TODO: Organize vals order
 
             for i in text_boxes:
-                #print(i[0], i[1], i[2], i[3], i[4], i[5][:20], len(i[5]))
+                print(i[0], i[1], i[2], i[3], i[4], i[5][:20], len(i[5]))
                 size = i[4]
-                # RULE: Remove smallest text - generally image descriptions
                 text = i[-2]
+                # RULE: Remove smallest text - generally image descriptions
                 if size != smallest_size:
+                    # RULE: Merge two lines if second one is beginning with lowercase
+                    if text[0] == text[0].lower(): # sentence begins with lower letter
+                        content = content[:-2] + " " # Remove new line chars
                     content += text + "\n"
+
                 else:
                     eliminate_log(pk, "Smallest text in the page", text)
                 
