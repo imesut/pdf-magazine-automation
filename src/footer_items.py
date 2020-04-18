@@ -9,6 +9,7 @@ def clean_single_footer_items(footer_items, unique_items):
 
 # Receives an array from tuples like [(yL, yH, 'text'), (yL, yH, 'text') ...]
 def get_repeating_footer_items(footer_items):
+    print(footer_items)
     uniques_a = list(set(footer_items))
     clean_single_footer_items(footer_items, uniques_a)
     footer_items = list(set(footer_items))

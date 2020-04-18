@@ -2,6 +2,8 @@
 
 This work is an attempt to get clear text from PDF magazines to provide content for the visually impaired.	This work is an attempt to get clear text from PDF magazines to provide content for the visually impaired.
 
+```python3 pdf.py magazine.pdf```
+
 # Notes
 
 1. Images can be extracted with ghostscript with the command below. But when this process applied, some of the magazines corrupt. So this helper is not added to the repository.
