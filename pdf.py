@@ -26,7 +26,7 @@ from matplotlib import pyplot as plt
 ################################################################################
 
 pdf_file_name = ""
-
+current_file_name = ""
 if len(sys.argv) > 1:
     pdf_file_name = sys.argv[1]
 else:
@@ -65,10 +65,10 @@ def eliminate_log(pN, desc, *args):
 
 def create_file():
     global output_file_count
-    otf = open(file_base + "/" + file_base + "_" +
-               str(output_file_count) + ".txt", "w")
+    current_file_name = file_base + "/" + file_base + "_" + str(output_file_count) + ".txt"
+    otf = open(current_file_name, "w")
     output_file_count += 1
-    return otf
+    return otf, current_file_name
 
 
 def get_text_size_of_line(horizontal_text_line):
@@ -86,25 +86,41 @@ def get_text_size_of_line(horizontal_text_line):
     return size[-1]
 
 
-output_text_file = create_file()
+output_text_file, current_file_name = create_file()
 
 
-def calculate_titles_and_insert(text_boxes):
+def calculate_titles_and_insert(text_boxes, *args):
     # Title Calculation
     # When new title calculated seperate files
 
-    global prev_biggest_item_size, output_text_file, first_time, title_size
+    global prev_biggest_item_size, output_text_file, first_time, title_size, current_file_name
 
-    titles = list(filter(lambda x: x[ord_size] >= title_size, text_boxes))
+    min_size = title_size
+    if len(args) == 1:
+        min_size = args[0]
+
+    titles = list(filter(lambda x: x[ord_size] >= min_size, text_boxes))
+
+    # print("title size", min_size)
+    # print("title logic", text_boxes[:5])
+    # print(titles)
 
     if len(titles) > 0:
         merged_title = " ".join(
             list(map(lambda x: x[ord_text], titles))).capitalize()
-        if not first_time:
-            output_text_file.close()
-            output_text_file = create_file()
-        output_text_file.write("# " + merged_title + "\n")
-        first_time = False
+        if len(merged_title) > 250:
+            print("Title length exceed 250 characters, behaving like normal text, min_size is increasing to", min_size+1)
+            titles = calculate_titles_and_insert(text_boxes, min_size + 1)
+        else:
+            if not first_time:
+                output_text_file.close()
+                with open(current_file_name, "r") as f:
+                    if len(f.read()) < 500:
+                        output_text_file = open(current_file_name, "w")
+                    else:
+                        output_text_file, current_file_name = create_file()
+            output_text_file.write("# " + merged_title + "\n")
+            first_time = False
 
     return titles
 
@@ -173,7 +189,7 @@ def process_layout(layout, pN):
                             if isinstance(line, LTTextLineHorizontal):
                                 size = get_text_size_of_line(line)
                                 text_boxes.append((xP, yP, xS, yS, size, text))
-                                #print((xP, yP, xS, yS, size, text[:50]))
+                                #print((xP, yP, xS, yS, size, text[:30]))
                                 break  # analysis of first line is enough
                 else:
                     eliminate_log(pN, "Header / Footer text:", xP, yP, text)
@@ -206,14 +222,14 @@ def generate_content(text_boxes):
             # print("found lowercase beginning")
             # print("content" + content)
             # Remove new line chars (\n) from previous line
-            content = content[:-2] + " "
+            add_new_line = False
         elif text[-1] not in [".", "!", "?"]:
             add_new_line = False
+            print("I won't add new line here",text[-10:])
         # Add space after punctuation mark, begin new sentence
         content += text + " "
         if add_new_line:
-            content += "\n"
-
+            content = "\n" + content
     output_text_file.write(content)
 
 
@@ -230,18 +246,19 @@ def clean_chars_for_bottom_item(text):
 
 ################################################################################
 
+
 resourcemanager = PDFResourceManager()
 laparams = LAParams(detect_vertical=True, all_texts=True)
 device = PDFPageAggregator(resourcemanager, laparams=laparams)
 fp = open(pdf_file_name, 'rb')
 interpreter = PDFPageInterpreter(resourcemanager, device)
-caching = True
+caching = False
 pagenos = set()
 print("started to parse: ", pdf_file_name)
 
 for pN, page in enumerate(PDFPage.get_pages(fp, pagenos, caching=caching, check_extractable=True)):
     # Cover and index pages ignored.
-    if pN > 1:
+    if pN > 10 and pN < 30:
         interpreter.process_page(page)
         layout = device.get_result()
         header_threshold = 0  # round(height * threshold_rate)
@@ -250,7 +267,6 @@ for pN, page in enumerate(PDFPage.get_pages(fp, pagenos, caching=caching, check_
         col_width_divider = width / col_count
         footer_threshold = round(height * (1 - threshold_rate))
         footer_threshold_2 = round(height * (1 - threshold_rate * 2))
-        print(pN, "FETCHING PAGE: ", "width", width, "height", height)
         text_boxes = process_layout(layout, pN)
         pages.append(text_boxes)
 
@@ -259,6 +275,7 @@ device.close()
 
 ################################################################################
 
+
 print("started to process: ", pdf_file_name)
 
 
@@ -266,7 +283,7 @@ bottom_items = []
 sizes = []
 
 top = height * 0.1
-bottom = height - 100 # height * 0.85
+bottom = height - 100  # height * 0.85
 
 
 # LAYOUT ANALYSIS
@@ -281,7 +298,18 @@ for page in pages:
             bottom_items.append((tb[ord_y_pri], tb[ord_y_sec], text))
 
 sizes.sort()
-title_size = sizes[int(len(sizes) * 0.85)]
+
+# plt.plot(sizes)
+# plt.show()
+
+title_size_p85 = sizes[int(len(sizes) * 0.85)]
+title_size_p50 = sizes[int(len(sizes) * 0.50)]
+
+if title_size_p85 > title_size_p50:  # as expected
+    title_size = title_size_p85
+else:
+    title_size = title_size_p85 + 1
+
 # print(sizes)
 print("title size: ", title_size)
 del sizes
@@ -291,7 +319,7 @@ del sizes
 # RULE: Remove footer fext like page number and magazine name
 # Get footer items and remove from all of the pages
 footer_items_to_remove = get_repeating_footer_items(bottom_items)
-print("footer_items_to_remove", footer_items_to_remove)
+# print("footer_items_to_remove", footer_items_to_remove)
 for page in pages:
     for text_box in page:
         if text_box[ord_y_pri] > bottom:
@@ -311,7 +339,7 @@ for page in pages:
 for page in pages:
     text_boxes = page
     # if there is too many smal boxes that maybe tabular data
-    if len(text_boxes) > 3 and len(text_boxes) < 20:
+    if len(text_boxes) > 3 and len(text_boxes) < 50:
         text_boxes.sort(key=operator.itemgetter(ord_x_pri, ord_y_pri))
 
         # TODO this process is slow if items is too much
@@ -340,7 +368,8 @@ for page in pages:
             process_article_block(text_boxes)
 
 log_file.close()
-
+# TODO chechk if last file is longer than 500 chars
+output_text_file.close()
 # # Plots
 # # plt.plot(sizes)
 # # plt.show()
