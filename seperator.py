@@ -30,16 +30,18 @@ def get_yAxis_unified_range(datas):
 def get_seperator_line(datas):
     yAxis = get_yAxis_unified_range(datas)
     yAxis = eliminate_small_areas(yAxis)
-    prev_item_higher = yAxis[0][1]
-    line_val = 0
-    space = 0
-    for axis in yAxis[1:]:
-        new_space = axis[0] - prev_item_higher
-        if (new_space > space):
-            space = new_space
-            line_val = prev_item_higher + space / 2
-        prev_item_higher = axis[1]
-    return line_val, space
+    if len(yAxis) > 1:
+        prev_item_higher = yAxis[0][1]
+        line_val = 0
+        space = 0
+        for axis in yAxis[1:]:
+            new_space = axis[0] - prev_item_higher
+            if (new_space > space):
+                space = new_space
+                line_val = prev_item_higher + space / 2
+            prev_item_higher = axis[1]
+        return line_val, space
+    return 0, 0
 
 def eliminate_small_areas(axis_array):
     return list(filter(lambda x: x[1] - x[0] > 20, axis_array))
