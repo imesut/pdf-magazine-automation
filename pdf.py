@@ -124,37 +124,6 @@ def calculate_titles_and_insert(text_boxes, *args):
 
     return titles
 
-    # #print("text_boxes", text_boxes)
-    # biggest_item = max(text_boxes, key=operator.itemgetter(ord_size))
-    # #print("biggest_item", biggest_item)
-    # biggest_item_size = biggest_item[4]
-    # biggest_items = []
-    # if prev_biggest_item_size == 0:
-    #     prev_biggest_item_size = biggest_item_size
-    #     first_time = True
-
-    # if biggest_item_size >= prev_biggest_item_size:
-    # There is a threshold
-    #print("Title calculation: ", prev_biggest_item_size, biggest_item_size)
-    # Normalize too big titles
-    # if biggest_item_size > prev_biggest_item_size:
-    #     biggest_item_size = prev_biggest_item_size
-    # if abs(biggest_item_size - prev_biggest_item_size) <= 2:
-    #     biggest_items = list(filter(lambda x: x[ord_size] >= biggest_item_size, text_boxes))
-    #     biggest_items_text = map(lambda x: x[ord_text], biggest_items)
-    #     # print("biggest_items", biggest_items)
-    #     title = " ".join(biggest_items_text)
-    #     title = title.capitalize()
-    #     #print("title", title)
-    #     if not first_time:
-    #         #print("closing file", biggest_item_size, prev_biggest_item_size)
-    #         output_text_file.close()
-    #         output_text_file = create_file()
-    #     output_text_file.write("# " + title + "\n")
-    #     prev_biggest_item_size = biggest_item_size
-    #     first_time = False
-    # return biggest_items
-
 
 def process_layout(layout, pN):
     text_boxes = []
@@ -199,28 +168,12 @@ def process_layout(layout, pN):
 def generate_content(text_boxes):
     content = ""
     for i in text_boxes:
-        #print( i[ord_x_pri], i[ord_y_pri], i[ord_x_sec], i[ord_y_sec], i[ord_size], i[ord_text][:20] )
         size = i[ord_size]
         text = i[ord_text]
         add_new_line = True
-        # print(text)
-
-        # RULE: Remove smallest text - generally image descriptions
-        # Smallest size, I'm sceptical about this.
-        # If there is no footer text smallest size will be main text's size
-        # If three or more text box has the same smallest size then ignore it.
-        #smallest_size = min(text_boxes, key=operator.itemgetter(ord_size))[ord_size]
-        # if len(list(filter(lambda x: x[ord_size] == smallest_size, text_boxes))) < 3:
-        #    smallest_size = smallest_size
-        # else:
-        #    smallest_size = 0
-        # if size != smallest_size:
-        # else:
-        #     eliminate_log(pN, "Smallest text in the page", text)
         # RULE: Merge two lines if second one is beginning with lowercase
         if text[0] == text[0].lower():  # sentence begins with lower letter
             # print("found lowercase beginning")
-            # print("content" + content)
             # Remove new line chars (\n) from previous line
             add_new_line = False
         elif text[-1] not in [".", "!", "?"]:
