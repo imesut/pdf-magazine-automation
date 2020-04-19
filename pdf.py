@@ -65,7 +65,8 @@ def eliminate_log(pN, desc, *args):
 
 def create_file():
     global output_file_count
-    current_file_name = file_base + "/" + file_base + "_" + str(output_file_count) + ".txt"
+    current_file_name = file_base + "/" + file_base + \
+        "_" + str(output_file_count) + ".txt"
     otf = open(current_file_name, "w")
     output_file_count += 1
     return otf, current_file_name
@@ -119,7 +120,7 @@ def calculate_titles_and_insert(text_boxes, *args):
                         output_text_file = open(current_file_name, "w")
                     else:
                         output_text_file, current_file_name = create_file()
-            output_text_file.write("# " + merged_title + "\n")
+            output_text_file.write("# " + merged_title)
             first_time = False
 
     return titles
@@ -168,21 +169,15 @@ def process_layout(layout, pN):
 def generate_content(text_boxes):
     content = ""
     for i in text_boxes:
-        size = i[ord_size]
         text = i[ord_text]
         add_new_line = True
-        # RULE: Merge two lines if second one is beginning with lowercase
-        if text[0] == text[0].lower():  # sentence begins with lower letter
-            # print("found lowercase beginning")
-            # Remove new line chars (\n) from previous line
+        # RULE: Add to the previous line if sentence begins with lower letter
+        if text[0] == text[0].lower():
             add_new_line = False
-        elif text[-1] not in [".", "!", "?"]:
-            add_new_line = False
-            print("I won't add new line here",text[-10:])
-        # Add space after punctuation mark, begin new sentence
-        content += text + " "
+        text += text + " "
         if add_new_line:
-            content = "\n" + content
+            text = "\n" + text
+        content += text
     output_text_file.write(content)
 
 
@@ -211,9 +206,10 @@ print("started to parse: ", pdf_file_name)
 
 for pN, page in enumerate(PDFPage.get_pages(fp, pagenos, caching=caching, check_extractable=True)):
     # Cover and index pages ignored.
-    if pN > 10 and pN < 30:
+    if pN > 1:
         interpreter.process_page(page)
         layout = device.get_result()
+        print(pN)
         header_threshold = 0  # round(height * threshold_rate)
         width = round(page.mediabox[2])
         height = round(page.mediabox[3])

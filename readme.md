@@ -9,4 +9,4 @@ This work is an attempt to get clear text from PDF magazines to provide content 
    2. If you want to run after ghost script use like below;
    3. ```gs -o output.pdf -sDEVICE=pdfwrite -dFILTERVECTOR -dFILTERIMAGE input.pdf; python3 pdf.py output.pdf```
 
-2. 
+2. To convert all pdf magazines use ```for f in *.pdf; do python3 pdf.py "$f"; done```
