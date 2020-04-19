@@ -32,16 +32,18 @@ if len(sys.argv) > 1:
 else:
     pdf_file_name = "pozitif.pdf"
 
-file_base = pdf_file_name[:-4]
-
-if not os.path.isdir(file_base + "/"):
-    os.mkdir(file_base)
+name_wo_ext = pdf_file_name[:-4]
+folder = "output/" + name_wo_ext + "/"
+if not os.path.isdir("output/"):
+    os.mkdir("output/")
+if not os.path.isdir(folder):
+    os.mkdir(folder)
 
 ################################################################################
 
 article = ""
 plt_vals = []
-log_file = open(pdf_file_name + ".log", "w")
+log_file = open("output/" + pdf_file_name + ".log", "w")
 pages = []
 width = 0
 height = 0
@@ -51,8 +53,7 @@ first_time = True
 threshold_rate = 0  # 0.05
 col_count = 6
 
-output_file_count = 1
-prev_biggest_item_size = 0
+article_count = 1
 title_size = 0
 ord_x_pri, ord_y_pri, ord_x_sec, ord_y_sec, ord_size, ord_text = 0, 1, 2, 3, 4, 5
 
@@ -64,11 +65,10 @@ def eliminate_log(pN, desc, *args):
 
 
 def create_file():
-    global output_file_count
-    current_file_name = file_base + "/" + file_base + \
-        "_" + str(output_file_count) + ".txt"
+    global article_count
+    current_file_name = folder + name_wo_ext + "_" + str(article_count) + ".txt"
     otf = open(current_file_name, "w")
-    output_file_count += 1
+    article_count += 1
     return otf, current_file_name
 
 
@@ -94,7 +94,7 @@ def calculate_titles_and_insert(text_boxes, *args):
     # Title Calculation
     # When new title calculated seperate files
 
-    global prev_biggest_item_size, output_text_file, first_time, title_size, current_file_name
+    global output_text_file, first_time, title_size, current_file_name
 
     min_size = title_size
     if len(args) == 1:
@@ -102,15 +102,19 @@ def calculate_titles_and_insert(text_boxes, *args):
 
     titles = list(filter(lambda x: x[ord_size] >= min_size, text_boxes))
 
+
     # print("title size", min_size)
     # print("title logic", text_boxes[:5])
+    # print(titles)
+
     # print(titles)
 
     if len(titles) > 0:
         merged_title = " ".join(
             list(map(lambda x: x[ord_text], titles))).capitalize()
+        # print(merged_title)
         if len(merged_title) > 250:
-            print("Title length exceed 250 characters, behaving like normal text, min_size is increasing to", min_size+1)
+            log_file.write("Title length exceed 250 characters, behaving like normal text, min_size is increasing to", min_size+1)
             titles = calculate_titles_and_insert(text_boxes, min_size + 1)
         else:
             if not first_time:
@@ -120,7 +124,7 @@ def calculate_titles_and_insert(text_boxes, *args):
                         output_text_file = open(current_file_name, "w")
                     else:
                         output_text_file, current_file_name = create_file()
-            output_text_file.write("# " + merged_title)
+            output_text_file.write("# " + merged_title + "\n")
             first_time = False
 
     return titles
@@ -209,7 +213,7 @@ for pN, page in enumerate(PDFPage.get_pages(fp, pagenos, caching=caching, check_
     if pN > 1:
         interpreter.process_page(page)
         layout = device.get_result()
-        print(pN)
+        print(pN, end=" ")
         header_threshold = 0  # round(height * threshold_rate)
         width = round(page.mediabox[2])
         height = round(page.mediabox[3])
@@ -221,6 +225,7 @@ for pN, page in enumerate(PDFPage.get_pages(fp, pagenos, caching=caching, check_
 
 fp.close()
 device.close()
+del pagenos
 
 ################################################################################
 
@@ -269,7 +274,9 @@ del sizes
 # Get footer items and remove from all of the pages
 footer_items_to_remove = get_repeating_footer_items(bottom_items)
 # print("footer_items_to_remove", footer_items_to_remove)
+num = 1
 for page in pages:
+    print(num)
     for text_box in page:
         if text_box[ord_y_pri] > bottom:
             for waste in footer_items_to_remove:
@@ -281,7 +288,9 @@ for page in pages:
                 text_w = waste[2]
                 if yl_i == yl_w and yh_i == yh_w and text_i.startswith(text_w):
                     page.remove(text_box)
-                    print("removed", text_box)
+                    log_file.write("removed", text_box)
+                    break
+    num += 1
 
 ################################################################################
 
