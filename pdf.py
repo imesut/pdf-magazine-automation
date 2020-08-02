@@ -39,6 +39,12 @@ if not os.path.isdir("output/"):
 if not os.path.isdir(folder):
     os.mkdir(folder)
 
+# import subprocess
+
+# process = subprocess.Popen(["gs", "-o", name_wo_ext + "_gs.pdf", "-sDEVICE=pdfwrite", "-dFILTERIMAGE", pdf_file_name])
+# o,e = process.communicate()
+# pdf_file_name = name_wo_ext + "_gs.pdf"
+
 ################################################################################
 
 article = ""
@@ -114,7 +120,7 @@ def calculate_titles_and_insert(text_boxes, *args):
             list(map(lambda x: x[ord_text], titles))).capitalize()
         # print(merged_title)
         if len(merged_title) > 250:
-            log_file.write("Title length exceed 250 characters, behaving like normal text, min_size is increasing to", min_size+1)
+            log_file.write("Title length exceed 250 characters, behaving like normal text, min_size is increasing to " + str(min_size+1)  + "\n")
             titles = calculate_titles_and_insert(text_boxes, min_size + 1)
         else:
             if not first_time:
@@ -204,7 +210,7 @@ laparams = LAParams(detect_vertical=True, all_texts=True)
 device = PDFPageAggregator(resourcemanager, laparams=laparams)
 fp = open(pdf_file_name, 'rb')
 interpreter = PDFPageInterpreter(resourcemanager, device)
-caching = False
+caching = True
 pagenos = set()
 print("started to parse: ", pdf_file_name)
 
@@ -213,7 +219,7 @@ for pN, page in enumerate(PDFPage.get_pages(fp, pagenos, caching=caching, check_
     if pN > 1:
         interpreter.process_page(page)
         layout = device.get_result()
-        print(pN, end=" ")
+        # print(pN)
         header_threshold = 0  # round(height * threshold_rate)
         width = round(page.mediabox[2])
         height = round(page.mediabox[3])
@@ -274,9 +280,7 @@ del sizes
 # Get footer items and remove from all of the pages
 footer_items_to_remove = get_repeating_footer_items(bottom_items)
 # print("footer_items_to_remove", footer_items_to_remove)
-num = 1
 for page in pages:
-    print(num)
     for text_box in page:
         if text_box[ord_y_pri] > bottom:
             for waste in footer_items_to_remove:
@@ -288,9 +292,8 @@ for page in pages:
                 text_w = waste[2]
                 if yl_i == yl_w and yh_i == yh_w and text_i.startswith(text_w):
                     page.remove(text_box)
-                    log_file.write("removed", text_box)
+                    log_file.write("removed " + str(text_box) + "\n")
                     break
-    num += 1
 
 ################################################################################
 
